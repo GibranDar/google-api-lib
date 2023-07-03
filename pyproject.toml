@@ -10,7 +10,7 @@ authors = [
 ]
 description = "A basic Google API Library for Google Drive, Sheets, Slides & Docs"
 readme = "README.md"
-license = "MIT"
+requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 1 - Planning",
     "Intended Audience :: Developers",
