@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "google_api_lib"
+version = "0.0.1"
+authors = [
+    { name="Gibran Dar", email="gibrandar@gmail.com" }
+]
+description = "A basic Google API Library for Google Drive, Sheets, Slides & Docs"
+readme = "README.md"
+license = "MIT"
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities"
+]
+dependencies = [
+    "requests",
+    "google_api_python_client",
+    "google_auth",
+    "googlemaps",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/GibranDar/google-api-lib"
+"Bug Tracker" = "https://github.com/GibranDar/google-api-lib/issues"
+
