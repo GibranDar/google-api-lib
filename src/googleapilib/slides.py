@@ -1,4 +1,4 @@
-from typing import Any, Optional, Literal
+from typing import Any, Optional, Literal, TypedDict, Union
 from attrs import define, field, validators
 
 from .api import slides
@@ -53,7 +53,18 @@ def get_table_cells(table):
     return cells
 
 
-def batch_update(presentation_id: str, requests: list[Any]):
+# responses
+
+WriteControl = TypedDict("WriteControl", {"requiredRevisionId": str})
+
+
+class SlidesBatchUpdateResponse(TypedDict):
+    presentationId: str
+    replies: list[dict[str, Union[str, int]]]
+    writeControl: WriteControl
+
+
+def batch_update(presentation_id: str, requests: list[Any]) -> SlidesBatchUpdateResponse:
     response = (
         slides.presentations()
         .batchUpdate(presentationId=presentation_id, body={"requests": requests})
