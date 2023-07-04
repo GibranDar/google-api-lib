@@ -1,6 +1,8 @@
-from typing import Any, Optional
+from typing import Any, Optional, Literal
+from attrs import define, field, validators
 
 from .api import slides
+from .utilities.validators import url_validator
 
 
 def open_presentation(presentation_id: str):
@@ -18,12 +20,7 @@ def get_page_ids(presentation):
 
 
 def parse_page(presentation_id: str, page_id: str):
-    page = (
-        slides.presentations()
-        .pages()
-        .get(presentationId=presentation_id, pageObjectId=page_id)
-        .execute()
-    )
+    page = slides.presentations().pages().get(presentationId=presentation_id, pageObjectId=page_id).execute()
     return page
 
 
@@ -32,9 +29,7 @@ def get_all_page_text(page):
     for element in page["pageElements"]:
         if "shape" in element:
             if "text" in element["shape"]:
-                text_objects.append(
-                    {"id": element["objectId"], "text": element["shape"]["text"]}
-                )
+                text_objects.append({"id": element["objectId"], "text": element["shape"]["text"]})
     return text_objects
 
 
@@ -70,6 +65,55 @@ def batch_update(presentation_id: str, requests: list[Any]):
 # requests
 
 
+@define(kw_only=True)
+class ReplaceTextRequest:
+    old_text: str = field(validator=[validators.instance_of(str)])
+    new_text: str = field(validator=[validators.instance_of(str)])
+    match_case: bool = field(default=True)
+
+
+def replace_all_text(page_ids: list[str], request: ReplaceTextRequest):
+    """Replaces all instances of text matching a criteria with replace text.
+    Replaces all instances of specified text"""
+
+    return {
+        "replaceAllText": {
+            "pageObjectIds": page_ids,
+            "containsText": {"matchCase": request.match_case, "text": request.old_text},
+            "replaceText": request.new_text,
+        }
+    }
+
+
+@define(kw_only=True)
+class ReplaceShapeWithImageRequest:
+    image_url: str = field(validator=[url_validator])
+    match_text: str = field(validator=[validators.instance_of(str)])
+    match_case: bool = field(default=True)
+    replace_method: Literal["CENTER_INSIDE", "CENTER_CROP"] = field(
+        default="CENTER_INSIDE",
+    )
+
+
+def replace_shape_with_image(
+    page_ids: list[str],
+    request: ReplaceShapeWithImageRequest,
+):
+    """Replaces all shapes that match the given criteria with the provided image.
+    The images replacing the shapes are rectangular after being inserted into the
+    presentation and do not take on the forms of the shapes. Replaces all shapes
+    matching some criteria with an image."""
+
+    return {
+        "replaceAllShapesWithImage": {
+            "pageObjectIds": page_ids,
+            "containsText": {"matchCase": request.match_case, "text": request.match_text},
+            "imageUrl": request.image_url,
+            "imageReplaceMethod": request.replace_method,
+        }
+    }
+
+
 def get_text_range(
     range_type: str = "ALL",
     start_index: Optional[int] = None,
@@ -99,9 +143,7 @@ def get_text_range(
     return text_range
 
 
-def insert_text_into_table_cell(
-    table_id: str, row: int, col: int, new_text: str, insertion_index: int = 0
-):
+def insert_text_into_table_cell(table_id: str, row: int, col: int, new_text: str, insertion_index: int = 0):
     request = {
         "insertText": {
             "objectId": table_id,
@@ -175,19 +217,6 @@ def delete_table_row(table_id: str, row: int, col: int):
     return request
 
 
-def replace_all_text(
-    page_ids: list[str], old_text: str, new_text: str, match_case=True
-):
-    request = {
-        "replaceAllText": {
-            "pageObjectIds": page_ids,
-            "containsText": {"matchCase": match_case, "text": old_text},
-            "replaceText": new_text,
-        }
-    }
-    return request
-
-
 def replace_shape_with_chart(
     spreadsheet_id: str,
     chart_id: int,
@@ -203,24 +232,6 @@ def replace_shape_with_chart(
             "pageObjectIds": page_ids,
             "containsText": {"text": match_text, "matchCase": match_case},
             "linkingMode": linking_mode,
-        }
-    }
-    return request
-
-
-def replace_shape_with_image(
-    image_url: str,
-    page_ids: list[str],
-    match_text: str,
-    match_case=True,
-    replace_method="CENTER_INSIDE",
-):
-    request = {
-        "replaceAllShapesWithImage": {
-            "pageObjectIds": page_ids,
-            "containsText": {"matchCase": match_case, "text": match_text},
-            "imageUrl": image_url,
-            "imageReplaceMethod": replace_method,
         }
     }
     return request
