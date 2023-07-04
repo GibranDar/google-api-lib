@@ -2,6 +2,7 @@ from typing import Any, Optional, Literal, TypedDict, Union
 from attrs import define, field, validators
 
 from .api import slides
+from .errors import GoogleApiErrorResponse
 from .utilities.validators import url_validator
 
 
@@ -64,13 +65,27 @@ class SlidesBatchUpdateResponse(TypedDict):
     writeControl: WriteControl
 
 
-def batch_update(presentation_id: str, requests: list[Any]) -> SlidesBatchUpdateResponse:
+class SlidesBatchUpdateError(TypedDict):
+    error: GoogleApiErrorResponse
+
+
+def batch_update(
+    presentation_id: str, requests: list[Any]
+) -> Union[SlidesBatchUpdateResponse, SlidesBatchUpdateError]:
     response = (
         slides.presentations()
         .batchUpdate(presentationId=presentation_id, body={"requests": requests})
         .execute()
     )
-    return response
+
+    if "error" in response:
+        return SlidesBatchUpdateError(error=response["error"])
+    else:
+        return SlidesBatchUpdateResponse(
+            presentationId=response["presentationId"],
+            replies=response["replies"],
+            writeControl=response["writeControl"],
+        )
 
 
 # requests
