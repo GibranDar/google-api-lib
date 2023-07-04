@@ -24,6 +24,7 @@ dependencies = [
     "google_api_python_client",
     "google_auth",
     "googlemaps",
+    "python-dotenv"
 ]
 
 [project.urls]
