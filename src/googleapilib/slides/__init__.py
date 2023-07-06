@@ -5,7 +5,7 @@ from googleapilib.api import slides
 from googleapilib.errors import GoogleApiErrorResponse
 from googleapilib.utilities.validators import url_validator
 
-from .schema import Presentation
+from .schema import Presentation, Page, Table
 
 
 def open_presentation(presentation_id: str) -> Presentation:
@@ -13,7 +13,7 @@ def open_presentation(presentation_id: str) -> Presentation:
     return Presentation(**pres)  # type: ignore[misc]
 
 
-def get_page_ids(presentation):
+def get_page_ids(presentation) -> list[str]:
     page_ids: list[str] = []
     for page in presentation["slides"]:
         for k, v in page.items():
@@ -22,12 +22,12 @@ def get_page_ids(presentation):
     return page_ids
 
 
-def parse_page(presentation_id: str, page_id: str):
+def parse_page(presentation_id: str, page_id: str) -> Page:
     page = slides.presentations().pages().get(presentationId=presentation_id, pageObjectId=page_id).execute()
-    return page
+    return Page(**page)  # type: ignore[misc]
 
 
-def get_all_page_text(page):
+def get_all_page_text(page: Page):
     text_objects = []
     for element in page["pageElements"]:
         if "shape" in element:
@@ -36,7 +36,7 @@ def get_all_page_text(page):
     return text_objects
 
 
-def get_all_page_tables(page):
+def get_all_page_tables(page: Page):
     table_objects = []
     for element in page["pageElements"]:
         if "table" in element:
@@ -44,8 +44,8 @@ def get_all_page_tables(page):
     return table_objects
 
 
-def get_table_cells(table):
-    table_rows = table["table"]["tableRows"]
+def get_table_cells(table: Table):
+    table_rows = table["tableRows"]
 
     cells = []
     for row in table_rows:
