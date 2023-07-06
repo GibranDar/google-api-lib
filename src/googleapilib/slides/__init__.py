@@ -1,14 +1,16 @@
 from typing import Any, Optional, Literal, TypedDict, Union
 from attrs import define, field, validators
 
-from .api import slides
-from .errors import GoogleApiErrorResponse
-from .utilities.validators import url_validator
+from googleapilib.api import slides
+from googleapilib.errors import GoogleApiErrorResponse
+from googleapilib.utilities.validators import url_validator
+
+from .schema import Presentation
 
 
-def open_presentation(presentation_id: str):
+def open_presentation(presentation_id: str) -> Presentation:
     pres = slides.presentations().get(presentationId=presentation_id).execute()
-    return pres
+    return Presentation(**pres)  # type: ignore[misc]
 
 
 def get_page_ids(presentation):
