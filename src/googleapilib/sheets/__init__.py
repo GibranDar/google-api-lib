@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from pprint import pprint
 from typing import Any, Literal, TypedDict, Union
 
-from .utilities.decorators import exponential_backoff_decorator
+from googleapilib.utilities.decorators import exponential_backoff_decorator
 
-from .api import sheets
+from googleapilib.api import sheets
 
 # sheet types
 SheetsValue = Union[str, int, float]
