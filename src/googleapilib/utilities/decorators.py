@@ -1,33 +1,37 @@
 from functools import wraps
 from time import sleep
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TypeVar
 
 from googleapiclient.errors import HttpError
+
+R = TypeVar("R")
 
 
 def exponential_backoff_decorator(
     status_code: Optional[int] = None,
+    return_type: Optional[Callable[..., R]] = None,
     retry_count: int = 5,
     retry_interval: int = 2,
     max_retry_interval: int = 60,
-):
+) -> Callable[[Callable[..., R]], Callable[..., R]]:
     """
     Decorator function for exponential backoff strategy.
 
     Args:
+        status_code (int): Status code to retry on.
+        return_type (Optional[Callable[..., R]]): Return type of the function.
         retry_count (int): Number of retries.
         retry_interval (int): Initial interval between retries.
         max_retry_interval (int): Maximum interval between retries.
     """
 
-    def wrapper(func: Callable[..., Any]):
+    def wrapper(func: Callable[..., R]) -> Callable[..., R]:
         @wraps(func)
-        def inner(*args: Any, **kwargs: Any) -> Any:
+        def inner(*args: Any, **kwargs: Any) -> R:
             for retry_count_ in range(retry_count):
                 try:
                     return func(*args, **kwargs)
                 except HttpError as e:
-
                     if status_code and e.resp.status != status_code:
                         raise e
 
@@ -44,6 +48,9 @@ def exponential_backoff_decorator(
                         continue
                 except Exception as e:
                     raise e
+
+            # Handle case when all retries fail
+            raise Exception("All retries failed")
 
         return inner
 

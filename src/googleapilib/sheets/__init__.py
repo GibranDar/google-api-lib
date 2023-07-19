@@ -1,10 +1,11 @@
-from dataclasses import dataclass
 from pprint import pprint
 from typing import Any, Literal, TypedDict, Union
-
-from googleapilib.utilities.decorators import exponential_backoff_decorator
+from attrs import define, field, validators, asdict
 
 from googleapilib.api import sheets
+from googleapilib.utilities.decorators import exponential_backoff_decorator
+
+from .schema import Spreadsheet, NamedRange, EmbeddedChart, Dimension
 
 # sheet types
 SheetsValue = Union[str, int, float]
@@ -19,32 +20,58 @@ ValueRenderOption = Literal["FORMATTED_VALUE", "UNFORMATTED_VALUE", "FORMULA"]
 DateTimeRenderOption = Literal["SERIAL_NUMBER", "FORMATTED_STRING"]
 
 
-class UpdateCellData(TypedDict):
+class ValueRange(TypedDict):
     range: str
     values: list[list[Any]]
-    majorDimension: Literal["ROWS", "COLUMNS"]
+    majorDimension: Dimension
 
 
-@dataclass
-class BatchUpdateCellRequest:
-    data: list[UpdateCellData]
-    includeValuesInResponse: bool = False
-    responseValueRenderOption: ValueRenderOption = "FORMATTED_VALUE"
-    valueInputOption: ValueInputOption = "USER_ENTERED"
+class UpdateValuesResponse(TypedDict):
+    spreadsheetId: str
+    updatedRange: str
+    updatedRows: int
+    updatedColumns: int
+    updatedCells: int
+    updatedData: ValueRange
+
+
+class AppendValuesResponse(TypedDict):
+    spreadsheetId: str
+    tableRange: str
+    updates: UpdateValuesResponse
+
+
+class BatchGetValuesResponse(TypedDict):
+    spreadsheetId: str
+    valueRanges: list[ValueRange]
+
+
+class BatchUpdateValuesResponse(TypedDict):
+    valueInputOption: ValueInputOption
+    data: list[ValueRange]
+    includeValuesInResponse: bool
+    responseValueRenderOption: ValueRenderOption
+    responseDateTimeRenderOption: DateTimeRenderOption
+
+
+@define(kw_only=True)
+class BatchUpdateValuesRequest:
+    data: list[ValueRange]
+    includeValuesInResponse: bool = field(default=False)
+    responseValueRenderOption: ValueRenderOption = field(default="FORMATTED_VALUE")
+    valueInputOption: ValueInputOption = field(default="USER_ENTERED")
 
 
 # functions
 
 
-@exponential_backoff_decorator(status_code=429)
-def open_workbook(spreadsheet_id: str):
+def open_workbook(spreadsheet_id: str) -> Spreadsheet:
     """Open a workbook."""
     workbook = sheets.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-    return workbook
+    return Spreadsheet(**workbook)  # type: ignore[misc]
 
 
-@exponential_backoff_decorator(status_code=429)
-def get_values(spreadsheet_id: str, range: str):
+def get_values(spreadsheet_id: str, range: str) -> ValueRange:
     """Get values from a range in a spreadsheet."""
     res = (
         sheets.spreadsheets()
@@ -58,11 +85,10 @@ def get_values(spreadsheet_id: str, range: str):
         )
         .execute()
     )
-    return res["values"]
+    return ValueRange(**res)  # type: ignore[misc]
 
 
-@exponential_backoff_decorator(status_code=429)
-def get_charts(spreadsheet_id: str):
+def get_charts(spreadsheet_id: str) -> list[list[EmbeddedChart]]:
     """Get all charts in a spreadsheet."""
     wb = open_workbook(spreadsheet_id)
     sheets = wb["sheets"]
@@ -70,33 +96,14 @@ def get_charts(spreadsheet_id: str):
     return charts
 
 
-@exponential_backoff_decorator(status_code=429)
-def get_all_named_ranges(spreadsheet_id: str):
+def get_named_ranges(spreadsheet_id: str) -> list[NamedRange]:
     """Get all named ranges from a spreadsheet."""
     wb = open_workbook(spreadsheet_id)
-    named_ranges = wb.get("namedRanges", None)
-    assumptions = {}
-    if named_ranges:
-        for named_range in named_ranges:
-            assumptions[named_range["name"]] = get_values(spreadsheet_id, named_range["name"])
-    return assumptions
+    return [NamedRange(**named_range) for named_range in wb["namedRanges"]]  # type: ignore[misc]
 
 
-@exponential_backoff_decorator(status_code=429)
-def x_get_all_named_ranges(spreadsheet_id: str):
-    wb = open_workbook(spreadsheet_id)
-    named_ranges = wb.get("namedRanges", None)
-    names = [named_range["name"] for named_range in named_ranges]
-    res = batch_get_ranges(spreadsheet_id, names)
-
-    assumptions = {}
-    for idx, name in enumerate(names):
-        assumptions[name] = res[idx]["values"]
-    return assumptions
-
-
-def batch_get_ranges(spreadsheet_id: str, ranges: Union[str, list[str]]):
-    """Batch get ranges from a spreadsheet."""
+def batch_get_ranges(spreadsheet_id: str, ranges: Union[str, list[str]]) -> BatchGetValuesResponse:
+    """Batch get ranges from a spreadsheet. Ranges can be in A1 notation, R1C1 notation or reference to a named range."""
     res = (
         sheets.spreadsheets()
         .values()
@@ -109,21 +116,18 @@ def batch_get_ranges(spreadsheet_id: str, ranges: Union[str, list[str]]):
         )
         .execute()
     )
-    return res["valueRanges"]
+    return BatchGetValuesResponse(**res)  # type: ignore[misc]
 
 
-def batch_update(spreadsheet_id: str, body: BatchUpdateCellRequest):
+def batch_update(spreadsheet_id: str, body: BatchUpdateValuesRequest) -> BatchUpdateValuesResponse:
     """Batch update a spreadsheet."""
     res = (
-        sheets.spreadsheets()
-        .values()
-        .batchUpdate(spreadsheetId=spreadsheet_id, body=body.__dict__)  # type:ignore
-        .execute()
+        sheets.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheet_id, body=asdict(body)).execute()
     )
-    return res
+    return BatchUpdateValuesResponse(**res)  # type: ignore[misc]
 
 
-def append_values(spreadsheet_id: str, range: str, values: list[list[Any]]):
+def append_values(spreadsheet_id: str, range: str, values: list[list[Any]]) -> AppendValuesResponse:
     """Append values to a range in a spreadsheet."""
     res = (
         sheets.spreadsheets()
@@ -137,29 +141,28 @@ def append_values(spreadsheet_id: str, range: str, values: list[list[Any]]):
         )
         .execute()
     )
-    return res
+    return AppendValuesResponse(**res)  # type: ignore[misc]
 
 
 def update_value(
     spreadsheet_id: str,
-    row: int,
-    col: int,
+    sheet_title: str,
+    range: str,
     value: list[Any],
     render_option: ValueRenderOption = "FORMATTED_VALUE",
     input_option: ValueInputOption = "USER_ENTERED",
-):
+) -> UpdateValuesResponse:
     """Update a single row in a spreadsheet."""
-    range = f"R{row}:C{col}"
     res = (
         sheets.spreadsheets()
         .values()
         .update(
             spreadsheetId=spreadsheet_id,
-            range=range,
+            range=f"{sheet_title}!{range}",
             valueInputOption=input_option,
             responseValueRenderOption=render_option,
             body={"values": [value]},
         )
         .execute()
     )
-    return res
+    return UpdateValuesResponse(**res)  # type: ignore[misc]

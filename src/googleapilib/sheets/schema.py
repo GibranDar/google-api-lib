@@ -428,12 +428,15 @@ class PivotTableBase(TypedDict):
     valueLayout: PivotValueLayout
 
 
-class GridRange(TypedDict):
-    sheetId: int
+class GridRangeBase(TypedDict):
     startRowIndex: int
     endRowIndex: int
     startColumnIndex: int
     endColumnIndex: int
+
+
+class GridRange(GridRangeBase, total=False):
+    sheetId: int
 
 
 class PivotTable(PivotTableBase, total=False):

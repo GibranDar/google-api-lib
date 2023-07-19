@@ -1,10 +1,10 @@
 # type: ignore
 
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
 
-import pytest
 from googleapilib.slides import (
     ReplaceTextRequest,
     replace_all_text,
