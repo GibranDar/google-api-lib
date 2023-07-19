@@ -1,8 +1,8 @@
 from dataclasses import dataclass, asdict
 from typing import Any
 
-from .api import docs
-from .utilities.decorators import exponential_backoff_decorator
+from googleapilib.api import docs
+from googleapilib.utilities.decorators import exponential_backoff_decorator
 
 
 @dataclass
