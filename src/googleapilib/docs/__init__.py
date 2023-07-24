@@ -4,6 +4,8 @@ from typing import Any
 from googleapilib.api import docs
 from googleapilib.utilities.decorators import exponential_backoff_decorator
 
+from .schema import Document
+
 
 @dataclass
 class SubstringMatchCriteria:
@@ -19,14 +21,12 @@ class ReplaceAllText:
     containsText: SubstringMatchCriteria
 
 
-@exponential_backoff_decorator(status_code=429)
-def get_document(document_id: str):
+def open_document(document_id: str) -> Document:
     """Open a Document"""
     doc = docs.documents().get(documentId=document_id).execute()
-    return doc
+    return Document(**doc)  # type: ignore[misc]
 
 
-@exponential_backoff_decorator(status_code=429)
 def batch_update(document_id: str, requests: list[dict[str, Any]]):
     res = docs.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
     return res

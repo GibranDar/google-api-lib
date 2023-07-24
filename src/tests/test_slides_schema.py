@@ -1,9 +1,8 @@
+import pytest
+from pprint import pprint
 from dotenv import load_dotenv
 
 load_dotenv()
-
-import pytest
-from pprint import pprint
 
 from googleapilib.slides import open_presentation, parse_page
 from googleapilib.slides.schema import Presentation, Page
