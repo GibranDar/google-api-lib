@@ -109,7 +109,7 @@ class TextStyle(TypedDict):
     italic: bool
     fontFamily: str
     fontSize: Dimension
-    link: dict[str, Union[str, int]]
+    link: Link
     baselineOffset: BaselineOffset
     smallCaps: bool
     strikethrough: bool
