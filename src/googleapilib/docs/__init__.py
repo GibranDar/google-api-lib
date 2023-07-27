@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict
+from attrs import define, field, validators, asdict
 from typing import Any
 
 from googleapilib.api import docs
@@ -7,17 +7,17 @@ from googleapilib.utilities.decorators import exponential_backoff_decorator
 from .schema import Document
 
 
-@dataclass
+@define(kw_only=True)
 class SubstringMatchCriteria:
     """Text references the text to search for in the Document, if match case is true the search is case sensitive"""
 
-    text: str
-    matchCase: bool = False
+    text: str = field(validator=validators.instance_of(str))
+    matchCase: bool = field(default=False)
 
 
-@dataclass
+@define(kw_only=True)
 class ReplaceAllText:
-    replaceText: str
+    replaceText: str = field(validator=validators.instance_of(str))
     containsText: SubstringMatchCriteria
 
 
