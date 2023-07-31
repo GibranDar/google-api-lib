@@ -1,11 +1,21 @@
 import datetime
 
-from .api import drive
+from googleapilib.api import drive
+from googleapilib.drive.schema import File
 
 
-def get_file(file_id: str):
+def get_file(file_id: str) -> File:
     f = drive.files().get(fileId=file_id).execute()
+    return File(**f)  # type: ignore[misc]
+
+
+def copy_file(file_id: str, parents: list[str], filename: str) -> File:
+    body = File(parents=parents, name=filename)
+    f = drive.files().copy(fileId=file_id, body=body).execute()
     return f
+
+
+# TODO: add type hints - Drive Folder
 
 
 def create_folder(folder_name: str, parents: list[str] = []):
@@ -54,30 +64,3 @@ def get_or_create_folder(folder_name: str, parent_id: str):
     else:
         folder = create_folder(folder_name, parents=[parent_id])
     return folder
-
-
-def copy_file(file_id: str, parents: list[str], filename: str):
-    f = drive.files().copy(fileId=file_id, body={"parents": parents, "name": filename}).execute()
-    return f
-
-
-def copy_deck(appraisal_id: str, parents: list[str], building_name: str, landlord_name: str):
-    timestamp = datetime.datetime.now()
-    filename = f"001_APPRAISAL - {timestamp} - {landlord_name}, {building_name}"
-    appraisal = copy_file(appraisal_id, parents, filename)
-    return appraisal
-
-
-def copy_fimo_and_deck(
-    fimo_id: str,
-    appraisal_id: str,
-    parents: list[str],
-    building_name: str,
-    landlord_name: str,
-):
-    """Copy proforma financial model and appraisal deck into proposal directory"""
-
-    fimo_filename = f"000_FIMO - {landlord_name}, {building_name}"
-    fimo = copy_file(fimo_id, parents, fimo_filename)
-    appraisal = copy_deck(appraisal_id, parents, building_name, landlord_name)
-    return fimo, appraisal
