@@ -95,16 +95,17 @@ def batch_update(
 
 @define(kw_only=True)
 class ReplaceTextRequest:
+    page_ids: str = field(validator=[validators.instance_of(str)])
     old_text: str = field(validator=[validators.instance_of(str)])
     new_text: str = field(validator=[validators.instance_of(str)])
     match_case: bool = field(default=True)
 
 
-def replace_all_text(page_ids: str, request: ReplaceTextRequest):
+def replace_all_text(request: ReplaceTextRequest):
     """Replaces all instances of text matching a criteria with replace text.
     Replaces all instances of specified text"""
 
-    page_object_ids = page_ids.split(";")
+    page_object_ids = request.page_ids.split(";")
     if not page_object_ids or len(page_object_ids) == 0:
         raise ValueError("No page ID(s) provided")
 
@@ -119,6 +120,7 @@ def replace_all_text(page_ids: str, request: ReplaceTextRequest):
 
 @define(kw_only=True)
 class ReplaceShapeWithImageRequest:
+    page_ids: str = field(validator=[validators.instance_of(str)])
     image_url: str = field(validator=[url_validator])
     match_text: str = field(validator=[validators.instance_of(str)])
     match_case: bool = field(default=True)
@@ -129,7 +131,6 @@ class ReplaceShapeWithImageRequest:
 
 
 def replace_shape_with_image(
-    page_ids: list[str],
     request: ReplaceShapeWithImageRequest,
 ):
     """Replaces all shapes that match the given criteria with the provided image.
@@ -137,12 +138,13 @@ def replace_shape_with_image(
     presentation and do not take on the forms of the shapes. Replaces all shapes
     matching some criteria with an image."""
 
-    if not page_ids or len(page_ids) == 0:
+    page_object_ids = request.page_ids.split(";")
+    if not page_object_ids or len(page_object_ids) == 0:
         raise ValueError("No page ID(s) provided")
 
     return {
         "replaceAllShapesWithImage": {
-            "pageObjectIds": page_ids,
+            "pageObjectIds": page_object_ids,
             "containsText": {"matchCase": request.match_case, "text": request.match_text},
             "imageUrl": request.image_url,
             "imageReplaceMethod": request.replace_method,
