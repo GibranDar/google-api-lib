@@ -1,5 +1,3 @@
-import datetime
-
 from googleapilib.api import drive
 from googleapilib.drive.schema import File
 
