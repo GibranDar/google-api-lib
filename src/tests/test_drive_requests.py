@@ -18,7 +18,6 @@ def test_get_file(file_id: str):
 
 
 def test_copy_file(file_id: str):
-    f = copy_file(file_id, parents=[], filename="test")
-    pprint(f, indent=2, sort_dicts=False)
+    f = copy_file(file_id, parents=["1E54B6cwSMCdphT63ngFow9xwtkSf_nUA"], filename="test")
     assert f["id"] != file_id
     assert f["name"] == "test"
