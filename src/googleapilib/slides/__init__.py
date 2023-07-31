@@ -100,16 +100,17 @@ class ReplaceTextRequest:
     match_case: bool = field(default=True)
 
 
-def replace_all_text(page_ids: list[str], request: ReplaceTextRequest):
+def replace_all_text(page_ids: str, request: ReplaceTextRequest):
     """Replaces all instances of text matching a criteria with replace text.
     Replaces all instances of specified text"""
 
-    if not page_ids or len(page_ids) == 0:
+    page_object_ids = page_ids.split(";")
+    if not page_object_ids or len(page_object_ids) == 0:
         raise ValueError("No page ID(s) provided")
 
     return {
         "replaceAllText": {
-            "pageObjectIds": page_ids,
+            "pageObjectIds": page_object_ids,
             "containsText": {"matchCase": request.match_case, "text": request.old_text},
             "replaceText": request.new_text,
         }
