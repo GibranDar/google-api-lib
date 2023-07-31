@@ -17,8 +17,9 @@ class SubstringMatchCriteria:
 
 @define(kw_only=True)
 class ReplaceAllText:
-    replaceText: str = field(validator=validators.instance_of(str))
-    containsText: SubstringMatchCriteria
+    old_text: str = field(validator=validators.instance_of(str))
+    new_text: str = field(validator=validators.instance_of(str))
+    match_case: bool = field(default=False)
 
 
 def open_document(document_id: str) -> Document:
@@ -36,5 +37,9 @@ def batch_update(document_id: str, requests: list[dict[str, Any]]):
 
 
 def replace_all_text(req: ReplaceAllText):
-    body = {"replaceAllText": asdict(req)}
-    return body
+    return {
+        "replaceAllText": {
+            "replaceText": req.new_text,
+            "containsText": {"text": req.old_text, "matchCase": req.match_case},
+        }
+    }
