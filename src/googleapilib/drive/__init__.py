@@ -9,6 +9,13 @@ def get_file(file_id: str) -> File:
     return File(**f)  # type: ignore[misc]
 
 
+def get_file_field(file_id: str, field: str) -> File:
+    if field not in File.__annotations__.keys():
+        raise ValueError(f"Field {field} not found in File schema")
+    f = drive.files().get(fileId=file_id, fields=field).execute()
+    return File(**f)  # type: ignore[misc]
+
+
 def copy_file(file_id: str, parents: list[str], filename: str) -> File:
     body = File(parents=parents, name=filename)
     f = drive.files().copy(fileId=file_id, body=body).execute()
