@@ -1,5 +1,7 @@
+from attrs import define, field
+
 from googleapilib.api import drive
-from googleapilib.drive.schema import File
+from googleapilib.drive.schema import File, MimeType
 
 
 def get_file(file_id: str) -> File:
@@ -16,19 +18,26 @@ def copy_file(file_id: str, parents: list[str], filename: str) -> File:
 # TODO: add type hints - Drive Folder
 
 
-def create_folder(folder_name: str, parents: list[str] = []):
-    folder_created = (
+@define(kw_only=True)
+class CreateFileRequest:
+    name: str
+    mime_type: MimeType
+    parents: list[str] = field(factory=list)
+
+
+def create_file(request: CreateFileRequest) -> File:
+    file: File = (
         drive.files()
         .create(
             body={
-                "name": folder_name,
-                "mimeType": "application/vnd.google-apps.folder",
-                "parents": parents,
+                "name": request.name,
+                "mimeType": request.mime_type,
+                "parents": request.parents,
             }
         )
         .execute()
     )
-    return folder_created
+    return file
 
 
 def list_items_in_directory(parent_id: str):
@@ -43,7 +52,7 @@ def list_items_in_directory(parent_id: str):
         return file_results
 
 
-def get_folder_list(folder_name: str, parent_id: str):
+def get_file_list(folder_name: str, parent_id: str):
     if (
         file_results := drive.files()
         .list(
@@ -55,10 +64,8 @@ def get_folder_list(folder_name: str, parent_id: str):
         return file_results
 
 
-def get_or_create_folder(folder_name: str, parent_id: str):
-    results = get_folder_list(folder_name, parent_id)
+def get_or_create_file(folder_name: str, parent_id: str, request: CreateFileRequest) -> File:
+    results = get_file_list(folder_name, parent_id)
     if results and len(results["files"]) == 1:
-        folder = results["files"][0]
-    else:
-        folder = create_folder(folder_name, parents=[parent_id])
-    return folder
+        return results["files"][0]
+    return create_file(request)
