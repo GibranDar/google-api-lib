@@ -47,6 +47,10 @@ def create_file(request: CreateFileRequest) -> File:
     return file
 
 
+def delete_file(file_id: str) -> None:
+    return drive.files().delete(fileId=file_id).execute()
+
+
 def list_items_in_directory(parent_id: str):
     if (
         file_results := drive.files()
