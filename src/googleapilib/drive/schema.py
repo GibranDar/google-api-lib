@@ -24,7 +24,7 @@ MimeType = Literal[
 
 class Thumbnail(TypedDict):
     image: str
-    mimeType: str
+    mimeType: MimeType
 
 
 class User(TypedDict):
@@ -177,7 +177,7 @@ class VideoMediaMetadata(TypedDict):
 
 class ShortcutDetails(TypedDict):
     targetId: str
-    targetMimeType: str
+    targetMimeType: MimeType
     targetResourceKey: str
 
 
@@ -205,7 +205,7 @@ class File(TypedDict, total=False):
     contentHints: ContentHints
     writersCanShare: bool
     viewedByMe: bool
-    mimeType: str
+    mimeType: MimeType
     exportLinks: dict[str, str]
     parents: list[str]
     thumbnailLink: str
