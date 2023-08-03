@@ -121,13 +121,13 @@ def replace_all_text(request: ReplaceTextRequest):
 @define(kw_only=True)
 class ReplaceShapeWithImageRequest:
     page_ids: str = field(validator=[validators.instance_of(str)])
-    image_url: str = field(validator=[url_validator])
     match_text: str = field(validator=[validators.instance_of(str)])
     match_case: bool = field(default=True)
     replace_method: Literal["CENTER_INSIDE", "CENTER_CROP"] = field(
         default="CENTER_INSIDE",
         validator=[validators.instance_of(str), validators.in_({"CENTER_INSIDE", "CENTER_CROP"})],
     )
+    image_url: Optional[str] = field(default=None, validator=[url_validator])
 
 
 def replace_shape_with_image(
