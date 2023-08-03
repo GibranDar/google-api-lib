@@ -121,7 +121,7 @@ def replace_all_text(request: ReplaceTextRequest):
 @define(kw_only=True)
 class ReplaceShapeWithImageRequest:
     page_ids: str = field(validator=[validators.instance_of(str)])
-    match_text: str = field(validator=[validators.instance_of(str)])
+    old_text: str = field(validator=[validators.instance_of(str)])
     match_case: bool = field(default=True)
     replace_method: Literal["CENTER_INSIDE", "CENTER_CROP"] = field(
         default="CENTER_INSIDE",
@@ -145,7 +145,7 @@ def replace_shape_with_image(
     return {
         "replaceAllShapesWithImage": {
             "pageObjectIds": page_object_ids,
-            "containsText": {"matchCase": request.match_case, "text": request.match_text},
+            "containsText": {"matchCase": request.match_case, "text": request.old_text},
             "imageUrl": request.image_url,
             "imageReplaceMethod": request.replace_method,
         }
