@@ -5,7 +5,7 @@ from googleapilib.api import slides
 from googleapilib.errors import GoogleApiErrorResponse
 from googleapilib.utilities.validators import url_validator
 
-from .schema import Presentation, Page, Table
+from .schema import Presentation, Page, Table, TableCell
 
 
 def open_presentation(presentation_id: str) -> Presentation:
@@ -44,16 +44,9 @@ def get_all_page_tables(page: Page):
     return table_objects
 
 
-def get_table_cells(table: Table):
+def get_table_cells(table: Table) -> list[TableCell]:
     table_rows = table["tableRows"]
-
-    cells = []
-    for row in table_rows:
-        table_cells = row["tableCells"]
-        for cell in table_cells:
-            cells.append(cell)
-
-    return cells
+    return [cell for row in table_rows for cell in row["tableCells"]]
 
 
 # responses
