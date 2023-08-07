@@ -5,7 +5,7 @@ from attrs import define, field, validators, asdict
 from googleapilib.api import sheets
 from googleapilib.utilities.decorators import exponential_backoff_decorator
 
-from .schema import Spreadsheet, NamedRange, EmbeddedChart, Dimension
+from .schema import Spreadsheet, NamedRange, EmbeddedChart, Sheet, Dimension
 
 # sheet types
 SheetsValue = Union[str, int, float]
@@ -88,12 +88,18 @@ def get_values(spreadsheet_id: str, range: str) -> ValueRange:
     return ValueRange(**res)  # type: ignore[misc]
 
 
-def get_charts(spreadsheet_id: str) -> list[list[EmbeddedChart]]:
-    """Get all charts in a spreadsheet."""
-    wb = open_workbook(spreadsheet_id)
-    sheets = wb["sheets"]
-    charts = [sheet["charts"] for sheet in sheets if "charts" in sheet]
-    return charts
+def get_sheet(wb: Spreadsheet, sheet_id: int) -> Sheet:
+    """Get a sheet from a workbook."""
+    wb["sheets"][0]["properties"]["sheetId"]
+    return [sheet for sheet in wb["sheets"] if sheet["properties"]["sheetId"] == sheet_id][0]
+
+
+def get_charts(wb: Spreadsheet, sheet_id: int):
+    """Get all charts within a sheet."""
+    sheet = get_sheet(wb, sheet_id)
+    if "charts" in sheet:
+        return sheet["charts"]
+    return []
 
 
 def get_named_ranges(spreadsheet_id: str) -> list[NamedRange]:
