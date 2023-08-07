@@ -93,9 +93,24 @@ def batch_update(
 # requests
 
 
-@define(kw_only=True)
-class ReplaceTextRequest:
+def split_page_ids(page_ids: str):
+    page_object_ids = page_ids.split(";")
+    if not page_object_ids or len(page_object_ids) == 0:
+        raise ValueError("No page ID(s) provided")
+    return page_object_ids
+
+
+@define
+class SlidesRequest:
     page_ids: str = field(validator=[validators.instance_of(str)])
+    page_object_ids: list[str] = field(init=False)
+
+    def __attrs_post_init__(self):
+        self.page_object_ids = split_page_ids(self.page_ids)
+
+
+@define(kw_only=True)
+class ReplaceTextRequest(SlidesRequest):
     old_text: str = field(validator=[validators.instance_of(str)])
     new_text: str = field(validator=[validators.instance_of(str)])
     match_case: bool = field(default=True)
@@ -119,8 +134,7 @@ def replace_all_text(request: ReplaceTextRequest):
 
 
 @define(kw_only=True)
-class ReplaceShapeWithImageRequest:
-    page_ids: str = field(validator=[validators.instance_of(str)])
+class ReplaceShapeWithImageRequest(SlidesRequest):
     old_text: str = field(validator=[validators.instance_of(str)])
     match_case: bool = field(default=True)
     replace_method: Literal["CENTER_INSIDE", "CENTER_CROP"] = field(
@@ -148,6 +162,30 @@ def replace_shape_with_image(
             "containsText": {"matchCase": request.match_case, "text": request.old_text},
             "imageUrl": request.image_url,
             "imageReplaceMethod": request.replace_method,
+        }
+    }
+
+
+@define(kw_only=True)
+class ReplaceShapeWithSheetsChartRequest(SlidesRequest):
+    old_text: str = field(validator=[validators.instance_of(str)])
+    spreadsheet_id: str = field(validator=[validators.instance_of(str)])
+    chart_id: int = field(validator=[validators.instance_of(int)])
+    match_case: bool = field(default=True)
+    linking_mode: Literal["LINKED", "NOT_LINKED"] = field(
+        default="LINKED",
+        validator=[validators.instance_of(str), validators.in_({"LINKED", "NOT_LINKED"})],
+    )
+
+
+def replace_shape_with_chart(request: ReplaceShapeWithSheetsChartRequest):
+    return {
+        "replaceAllShapesWithSheetsChart": {
+            "spreadsheetId": request.spreadsheet_id,
+            "chartId": request.chart_id,
+            "pageObjectIds": request.page_ids,
+            "containsText": {"text": request.old_text, "matchCase": request.match_case},
+            "linkingMode": request.linking_mode,
         }
     }
 
@@ -250,26 +288,6 @@ def delete_table_row(table_id: str, row: int, col: int):
         "deleteTableRow": {
             "tableObjectId": table_id,
             "cellLocation": {"rowIndex": row, "columnIndex": col},
-        }
-    }
-    return request
-
-
-def replace_shape_with_chart(
-    spreadsheet_id: str,
-    chart_id: int,
-    page_ids: list[str],
-    match_text: str,
-    match_case=True,
-    linking_mode="LINKED",
-):
-    request = {
-        "replaceAllShapesWithSheetsChart": {
-            "spreadsheetId": spreadsheet_id,
-            "chartId": chart_id,
-            "pageObjectIds": page_ids,
-            "containsText": {"text": match_text, "matchCase": match_case},
-            "linkingMode": linking_mode,
         }
     }
     return request
