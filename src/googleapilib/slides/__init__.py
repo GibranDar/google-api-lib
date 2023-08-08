@@ -36,11 +36,11 @@ def get_all_page_text(page: Page):
     return text_objects
 
 
-def get_all_page_tables(page: Page):
-    table_objects = []
+def get_all_page_tables(page: Page) -> list[Table]:
+    table_objects: list[Table] = []
     for element in page["pageElements"]:
-        if "table" in element:
-            table_objects.append({"id": element["objectId"], "table": element["table"]})
+        if table := element.get("table"):
+            table_objects.append(table)
     return table_objects
 
 
@@ -109,6 +109,38 @@ class ReplaceTextRequest(SlidesRequest):
     match_case: bool = field(default=True)
 
 
+@define(kw_only=True)
+class ReplaceShapeWithImageRequest(SlidesRequest):
+    old_text: str = field(validator=[validators.instance_of(str)])
+    match_case: bool = field(default=True)
+    replace_method: Literal["CENTER_INSIDE", "CENTER_CROP"] = field(
+        default="CENTER_INSIDE",
+        validator=[validators.instance_of(str), validators.in_({"CENTER_INSIDE", "CENTER_CROP"})],
+    )
+    image_url: Optional[str] = field(default=None, validator=[url_validator])
+
+
+@define(kw_only=True)
+class ReplaceShapeWithSheetsChartRequest(SlidesRequest):
+    old_text: str = field(validator=[validators.instance_of(str)])
+    spreadsheet_id: str = field(validator=[validators.instance_of(str)])
+    chart_id: int = field(validator=[validators.instance_of(int)])
+    match_case: bool = field(default=True)
+    linking_mode: Literal["LINKED", "NOT_LINKED"] = field(
+        default="LINKED",
+        validator=[validators.instance_of(str), validators.in_({"LINKED", "NOT_LINKED"})],
+    )
+
+
+@define(kw_only=True)
+class UpdateTableCellTextRequest(SlidesRequest):
+    table_id: str = field(validator=[validators.instance_of(str)])
+    row: int = field(validator=[validators.instance_of(int)])
+    col: int = field(validator=[validators.instance_of(int)])
+    new_text: str = field(validator=[validators.instance_of(str)])
+    insertion_index: int = field(default=0, validator=[validators.instance_of(int)])
+
+
 def replace_all_text(request: ReplaceTextRequest):
     """Replaces all instances of text matching a criteria with replace text.
     Replaces all instances of specified text"""
@@ -124,17 +156,6 @@ def replace_all_text(request: ReplaceTextRequest):
             "replaceText": request.new_text,
         }
     }
-
-
-@define(kw_only=True)
-class ReplaceShapeWithImageRequest(SlidesRequest):
-    old_text: str = field(validator=[validators.instance_of(str)])
-    match_case: bool = field(default=True)
-    replace_method: Literal["CENTER_INSIDE", "CENTER_CROP"] = field(
-        default="CENTER_INSIDE",
-        validator=[validators.instance_of(str), validators.in_({"CENTER_INSIDE", "CENTER_CROP"})],
-    )
-    image_url: Optional[str] = field(default=None, validator=[url_validator])
 
 
 def replace_shape_with_image(
@@ -159,18 +180,6 @@ def replace_shape_with_image(
     }
 
 
-@define(kw_only=True)
-class ReplaceShapeWithSheetsChartRequest(SlidesRequest):
-    old_text: str = field(validator=[validators.instance_of(str)])
-    spreadsheet_id: str = field(validator=[validators.instance_of(str)])
-    chart_id: int = field(validator=[validators.instance_of(int)])
-    match_case: bool = field(default=True)
-    linking_mode: Literal["LINKED", "NOT_LINKED"] = field(
-        default="LINKED",
-        validator=[validators.instance_of(str), validators.in_({"LINKED", "NOT_LINKED"})],
-    )
-
-
 def replace_shape_with_chart(request: ReplaceShapeWithSheetsChartRequest):
     return {
         "replaceAllShapesWithSheetsChart": {
@@ -179,6 +188,17 @@ def replace_shape_with_chart(request: ReplaceShapeWithSheetsChartRequest):
             "pageObjectIds": request.page_ids,
             "containsText": {"text": request.old_text, "matchCase": request.match_case},
             "linkingMode": request.linking_mode,
+        }
+    }
+
+
+def insert_text_into_table_cell(request: UpdateTableCellTextRequest):
+    return {
+        "insertText": {
+            "objectId": request.table_id,
+            "cellLocation": {"rowIndex": request.row, "columnIndex": request.col},
+            "text": request.new_text,
+            "insertionIndex": request.insertion_index,
         }
     }
 
@@ -210,18 +230,6 @@ def get_text_range(
             text_range = params
             break
     return text_range
-
-
-def insert_text_into_table_cell(table_id: str, row: int, col: int, new_text: str, insertion_index: int = 0):
-    request = {
-        "insertText": {
-            "objectId": table_id,
-            "cellLocation": {"rowIndex": row, "columnIndex": col},
-            "text": new_text,
-            "insertionIndex": insertion_index,
-        }
-    }
-    return request
 
 
 def delete_text_from_table_cell(
