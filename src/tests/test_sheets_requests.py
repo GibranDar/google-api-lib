@@ -17,6 +17,11 @@ def test_get_values(wb: Spreadsheet):
     assert res["range"] == f"{sheet_title}!A1"
 
 
+def test_get_values_with_named_range(wb: Spreadsheet):
+    res = get_values(wb["spreadsheetId"], "simple_pl")
+    assert res["range"] == "'Simple P&L'!B38:M52"
+
+
 def test_append_values(wb: Spreadsheet):
     sheet_title = wb["sheets"][0]["properties"]["title"]
     values = [["test", 2]]
