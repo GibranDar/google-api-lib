@@ -137,7 +137,7 @@ class UpdateTableCellTextRequest(SlidesRequest):
     table_id: str = field(validator=[validators.instance_of(str)])
     row: int = field(validator=[validators.instance_of(int)])
     col: int = field(validator=[validators.instance_of(int)])
-    new_text: str = field(validator=[validators.instance_of(str)])
+    new_text: Union[str, int, float] = field(validator=[validators.instance_of((str, int, float))])
     insertion_index: int = field(default=0, validator=[validators.instance_of(int)])
 
 
