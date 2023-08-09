@@ -16,7 +16,12 @@ class SubstringMatchCriteria:
 
 
 @define(kw_only=True)
-class ReplaceAllText:
+class DocsRequest:
+    pass
+
+
+@define(kw_only=True)
+class ReplaceAllText(DocsRequest):
     old_text: str = field(validator=validators.instance_of(str))
     new_text: str = field(validator=validators.instance_of(str))
     match_case: bool = field(default=False)
