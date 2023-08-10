@@ -10,6 +10,8 @@ from googleapilib.slides import (
     replace_all_text,
     ReplaceShapeWithImageRequest,
     replace_shape_with_image,
+    EditObjectTextStyleRequest,
+    edit_object_text_style,
 )
 
 
@@ -93,3 +95,36 @@ def test_replace_shape_with_image_null_string():
         ReplaceShapeWithImageRequest(
             image_url="http://test.com", match_text=None, match_case=True, replace_method="CENTER_INSIDE"
         )
+
+
+def test_edit_shape_text_style():
+    request = EditObjectTextStyleRequest(
+        page_ids="test",
+        object_type="SHAPE",
+        object_id="test_object_id",
+        style_obj={
+            "bold": True,
+            "italic": True,
+            "fontFamily": "fontFamily",
+            "fontSize": {"magnitude": 10, "unit": "PT"},
+            "foregroundColor": {"opaqueColor": {"rgbColor": {"red": 1, "green": 0, "blue": 0}}},
+        },
+    )
+
+    result = edit_object_text_style(request)
+
+    expected = {
+        "updateTextStyle": {
+            "objectId": request.object_id,
+            "textRange": {"type": "ALL"},
+            "style": {
+                "bold": request.style_obj["bold"],
+                "italic": request.style_obj["italic"],
+                "fontFamily": request.style_obj["fontFamily"],
+                "fontSize": request.style_obj["fontSize"],
+                "foregroundColor": request.style_obj["foregroundColor"],
+            },
+            "fields": request.fields,
+        }
+    }
+    assert result == expected

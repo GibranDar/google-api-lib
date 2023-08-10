@@ -5,7 +5,7 @@ from googleapilib.api import slides
 from googleapilib.errors import GoogleApiErrorResponse
 from googleapilib.utilities.validators import url_validator
 
-from .schema import Presentation, Page, Table, TableCell
+from .schema import Presentation, Page, Table, TableCell, TextRange, TextRangeType
 
 
 def open_presentation(presentation_id: str) -> Presentation:
@@ -47,6 +47,25 @@ def get_all_page_tables(page: Page) -> list[Table]:
 def get_table_cells(table: Table) -> list[TableCell]:
     table_rows = table["tableRows"]
     return [cell for row in table_rows for cell in row["tableCells"]]
+
+
+def get_text_range(
+    range_type: TextRangeType = "ALL",
+    start_index: Optional[int] = None,
+    end_index: Optional[int] = None,
+) -> TextRange:
+    RANGE_TYPE_OPTIONS = (
+        ("ALL", {"type": "ALL"}),
+        ("FROM_START_INDEX", {"type": "FROM_START_INDEX", "startIndex": start_index}),
+        ("FIXED_RANGE", {"type": "FIXED_RANGE", "startIndex": start_index, "endIndex": end_index}),
+    )
+
+    text_range = None
+    for _t, params in RANGE_TYPE_OPTIONS:
+        if _t == range_type:
+            text_range = params
+            break
+    return TextRange(**text_range)  # type: ignore[misc]
 
 
 # responses
@@ -141,6 +160,36 @@ class UpdateTableCellTextRequest(SlidesRequest):
     insertion_index: int = field(default=0, validator=[validators.instance_of(int)])
 
 
+@define(kw_only=True)
+class EditObjectTextStyleRequest(SlidesRequest):
+    object_type: Literal["SHAPE", "TABLE"] = field(
+        validator=[validators.instance_of(str), validators.in_({"SHAPE", "TABLE"})]
+    )
+    object_id: str = field(validator=[validators.instance_of(str)])
+    row: Optional[int] = field(default=None, validator=validators.optional([validators.instance_of(int)]))
+    col: Optional[int] = field(default=None, validator=validators.optional([validators.instance_of(int)]))
+    range_type: TextRangeType = field(
+        default="ALL",
+        validator=[validators.instance_of(str), validators.in_({"FIXED_RANGE", "FROM_START_INDEX", "ALL"})],
+    )
+    start_index: int = field(default=0, validator=[validators.instance_of(int)])
+    end_index: Optional[int] = field(
+        default=None, validator=validators.optional([validators.instance_of(int)])
+    )
+    text_range: TextRange = field(init=False)
+    style_obj: dict[str, Union[str, int, float, bool, dict[str, Any]]] = field(
+        validator=validators.deep_mapping(
+            key_validator=validators.instance_of(str),
+            value_validator=validators.instance_of((str, int, float, bool, dict)),
+            mapping_validator=validators.instance_of(dict),
+        )
+    )
+    fields: str = field(default="*")
+
+    def __attrs_post_init__(self):
+        self.text_range = get_text_range(self.range_type, self.start_index, self.end_index)
+
+
 def replace_all_text(request: ReplaceTextRequest):
     """Replaces all instances of text matching a criteria with replace text.
     Replaces all instances of specified text"""
@@ -203,33 +252,18 @@ def insert_text_into_table_cell(request: UpdateTableCellTextRequest):
     }
 
 
-def get_text_range(
-    range_type: str = "ALL",
-    start_index: Optional[int] = None,
-    end_index: Optional[int] = None,
-):
-    RANGE_TYPE_OPTIONS = (
-        ("RANGE_ALL", {"type": "ALL"}),
-        (
-            "FROM_START_INDEX",
-            {"type": "FROM_START_INDEX", "startIndex": start_index},
-        ),
-        (
-            "FIXED_RANGE",
-            {
-                "type": "FIXED_RANGE",
-                "startIndex": start_index,
-                "endIndex": end_index,
-            },
-        ),
-    )
-
-    text_range = None
-    for _t, params in RANGE_TYPE_OPTIONS:
-        if _t == range_type:
-            text_range = params
-            break
-    return text_range
+def edit_object_text_style(request: EditObjectTextStyleRequest):
+    r = {
+        "updateTextStyle": {
+            "objectId": request.object_id,
+            "style": request.style_obj,
+            "textRange": get_text_range(request.range_type, request.start_index, request.end_index),
+            "fields": request.fields,
+        }
+    }
+    if request.object_type == "TABLE":
+        r["updateTextStyle"]["cellLocation"] = {"rowIndex": request.row, "columnIndex": request.col}
+    return r
 
 
 def delete_text_from_table_cell(
@@ -245,28 +279,6 @@ def delete_text_from_table_cell(
             "objectId": table_id,
             "cellLocation": {"rowIndex": row, "columnIndex": col},
             "textRange": get_text_range(range_type, start_index, end_index),
-        }
-    }
-    return request
-
-
-def edit_table_cell_text_style(
-    table_id: str,
-    row: int,
-    col: int,
-    style_obj: Any,
-    fields: str,
-    range_type="ALL",
-    start_index: Optional[int] = None,
-    end_index: Optional[int] = None,
-):
-    request = {
-        "updateTextStyle": {
-            "objectId": table_id,
-            "cellLocation": {"rowIndex": row, "columnIndex": col},
-            "style": style_obj,
-            "textRange": get_text_range(range_type, start_index, end_index),
-            "fields": fields,
         }
     }
     return request

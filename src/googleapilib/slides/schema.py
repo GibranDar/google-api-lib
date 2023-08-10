@@ -162,6 +162,15 @@ class TextElement(TextElementBase, total=False):
     autoText: AutoText
 
 
+TextRangeType = Literal["FIXED_RANGE", "FROM_START_INDEX", "ALL"]
+
+
+class TextRange(TypedDict, total=False):
+    startIndex: int
+    endIndex: int
+    type: TextRangeType
+
+
 class NestingLevel(TypedDict):
     bulletStyle: TextStyle
 
