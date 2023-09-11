@@ -1,3 +1,4 @@
+from pprint import pprint
 from typing import Any, Optional, Literal, TypedDict, Union
 from attrs import define, field, validators
 
@@ -5,7 +6,12 @@ from googleapilib.api import slides
 from googleapilib.errors import GoogleApiErrorResponse
 from googleapilib.utilities.validators import url_validator
 
-from .schema import Presentation, Page, Table, TableCell, TextRange, TextRangeType
+from .schema import Presentation, Page, Table, TableCell, TextRange, TextRangeType, TextContent
+
+
+class PageText(TypedDict):
+    id: str
+    text: TextContent
 
 
 def open_presentation(presentation_id: str) -> Presentation:
@@ -27,8 +33,8 @@ def parse_page(presentation_id: str, page_id: str) -> Page:
     return Page(**page)  # type: ignore[misc]
 
 
-def get_all_page_text(page: Page):
-    text_objects = []
+def get_all_page_text(page: Page) -> list[PageText]:
+    text_objects: list[PageText] = []
     for element in page["pageElements"]:
         if "shape" in element:
             if "text" in element["shape"]:
@@ -129,6 +135,31 @@ class ReplaceTextRequest(SlidesRequest):
 
 
 @define(kw_only=True)
+class UpdateShapeTextStyleRequest(SlidesRequest):
+    object_id: str = field(validator=[validators.instance_of(str)])
+    range_type: TextRangeType = field(
+        default="ALL",
+        validator=[validators.instance_of(str), validators.in_({"FIXED_RANGE", "FROM_START_INDEX", "ALL"})],
+    )
+    start_index: int = field(default=0, validator=[validators.instance_of(int)])
+    end_index: Optional[int] = field(
+        default=None, validator=validators.optional([validators.instance_of(int)])
+    )
+    text_range: TextRange = field(init=False)
+    style: dict[str, Union[str, int, float, bool, dict[str, Any]]] = field(
+        validator=validators.deep_mapping(
+            key_validator=validators.instance_of(str),
+            value_validator=validators.instance_of((str, int, float, bool, dict)),
+            mapping_validator=validators.instance_of(dict),
+        )
+    )
+    fields: str = field(default="*")
+
+    def __attrs_post_init__(self):
+        self.text_range = get_text_range(self.range_type, self.start_index, self.end_index)
+
+
+@define(kw_only=True)
 class ReplaceShapeWithImageRequest(SlidesRequest):
     old_text: str = field(validator=[validators.instance_of(str)])
     match_case: bool = field(default=True)
@@ -203,6 +234,19 @@ def replace_all_text(request: ReplaceTextRequest):
             "pageObjectIds": page_object_ids,
             "containsText": {"matchCase": request.match_case, "text": request.old_text},
             "replaceText": request.new_text,
+        }
+    }
+
+
+def update_shape_text_style(request: UpdateShapeTextStyleRequest):
+    """Update the styling of text in a Shape or Table."""
+
+    return {
+        "updateTextStyle": {
+            "objectId": request.object_id,
+            "style": request.style,
+            "textRange": request.text_range,
+            "fields": request.fields,
         }
     }
 
@@ -304,3 +348,13 @@ def delete_table_row(table_id: str, row: int, col: int):
         }
     }
     return request
+
+
+def get_object_id_of_matching_text(text_objs: list[PageText], match_text: str) -> Optional[str]:
+    """Returns the object ID of the first text matching the given criteria."""
+
+    for text_obj in text_objs:
+        for text in text_obj["text"]["textElements"]:
+            if text.get("textRun") and text["textRun"].get("content") == match_text:
+                return text_obj["id"]
+    return None
