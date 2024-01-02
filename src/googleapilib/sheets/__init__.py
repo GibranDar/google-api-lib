@@ -58,7 +58,9 @@ class BatchUpdateValuesResponse(TypedDict):
 class BatchUpdateValuesRequest:
     data: list[ValueRange]
     includeValuesInResponse: bool = field(default=False)
-    responseValueRenderOption: ValueRenderOption = field(default="FORMATTED_VALUE")
+    responseValueRenderOption: ValueRenderOption = field(
+        default="FORMATTED_VALUE"
+    )
     valueInputOption: ValueInputOption = field(default="USER_ENTERED")
 
 
@@ -68,7 +70,7 @@ class BatchUpdateValuesRequest:
 def open_workbook(spreadsheet_id: str) -> Spreadsheet:
     """Open a workbook."""
     workbook = sheets.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-    return Spreadsheet(**workbook)  # type: ignore[misc]
+    return Spreadsheet(**workbook)  # type: ignore[typeddict-item]
 
 
 def get_values(spreadsheet_id: str, range: str) -> ValueRange:
@@ -85,13 +87,17 @@ def get_values(spreadsheet_id: str, range: str) -> ValueRange:
         )
         .execute()
     )
-    return ValueRange(**res)  # type: ignore[misc]
+    return ValueRange(**res)  # type: ignore[typeddict-item]
 
 
 def get_sheet(wb: Spreadsheet, sheet_id: int) -> Sheet:
     """Get a sheet from a workbook."""
     wb["sheets"][0]["properties"]["sheetId"]
-    return [sheet for sheet in wb["sheets"] if sheet["properties"]["sheetId"] == sheet_id][0]
+    return [
+        sheet
+        for sheet in wb["sheets"]
+        if sheet["properties"]["sheetId"] == sheet_id
+    ][0]
 
 
 def get_charts(wb: Spreadsheet, sheet_id: int):
@@ -105,10 +111,12 @@ def get_charts(wb: Spreadsheet, sheet_id: int):
 def get_named_ranges(spreadsheet_id: str) -> list[NamedRange]:
     """Get all named ranges from a spreadsheet."""
     wb = open_workbook(spreadsheet_id)
-    return [NamedRange(**named_range) for named_range in wb["namedRanges"]]  # type: ignore[misc]
+    return [NamedRange(**named_range) for named_range in wb["namedRanges"]]  # type: ignore[typeddict-item]
 
 
-def batch_get_ranges(spreadsheet_id: str, ranges: Union[str, list[str]]) -> BatchGetValuesResponse:
+def batch_get_ranges(
+    spreadsheet_id: str, ranges: Union[str, list[str]]
+) -> BatchGetValuesResponse:
     """Batch get ranges from a spreadsheet. Ranges can be in A1 notation, R1C1 notation or reference to a named range."""
     res = (
         sheets.spreadsheets()
@@ -122,18 +130,25 @@ def batch_get_ranges(spreadsheet_id: str, ranges: Union[str, list[str]]) -> Batc
         )
         .execute()
     )
-    return BatchGetValuesResponse(**res)  # type: ignore[misc]
+    return BatchGetValuesResponse(**res)  # type: ignore[typeddict-item]
 
 
-def batch_update(spreadsheet_id: str, body: BatchUpdateValuesRequest) -> BatchUpdateValuesResponse:
+def batch_update(
+    spreadsheet_id: str, body: BatchUpdateValuesRequest
+) -> BatchUpdateValuesResponse:
     """Batch update a spreadsheet."""
     res = (
-        sheets.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheet_id, body=asdict(body)).execute()
+        sheets.spreadsheets()
+        .values()
+        .batchUpdate(spreadsheetId=spreadsheet_id, body=asdict(body))
+        .execute()
     )
-    return BatchUpdateValuesResponse(**res)  # type: ignore[misc]
+    return BatchUpdateValuesResponse(**res)  # type: ignore[typeddict-item]
 
 
-def append_values(spreadsheet_id: str, range: str, values: list[list[Any]]) -> AppendValuesResponse:
+def append_values(
+    spreadsheet_id: str, range: str, values: list[list[Any]]
+) -> AppendValuesResponse:
     """Append values to a range in a spreadsheet."""
     res = (
         sheets.spreadsheets()
@@ -147,7 +162,7 @@ def append_values(spreadsheet_id: str, range: str, values: list[list[Any]]) -> A
         )
         .execute()
     )
-    return AppendValuesResponse(**res)  # type: ignore[misc]
+    return AppendValuesResponse(**res)  # type: ignore[typeddict-item]
 
 
 def update_value(
@@ -171,4 +186,4 @@ def update_value(
         )
         .execute()
     )
-    return UpdateValuesResponse(**res)  # type: ignore[misc]
+    return UpdateValuesResponse(**res)  # type: ignore[typeddict-item]

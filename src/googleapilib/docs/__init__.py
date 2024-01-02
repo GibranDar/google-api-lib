@@ -30,11 +30,15 @@ class ReplaceAllText(DocsRequest):
 def open_document(document_id: str) -> Document:
     """Open a Document"""
     doc = docs.documents().get(documentId=document_id).execute()
-    return Document(**doc)  # type: ignore[misc]
+    return Document(**doc)  # type: ignore[typeddict-item]
 
 
 def batch_update(document_id: str, requests: list[dict[str, Any]]):
-    res = docs.documents().batchUpdate(documentId=document_id, body={"requests": requests}).execute()
+    res = (
+        docs.documents()
+        .batchUpdate(documentId=document_id, body={"requests": requests})
+        .execute()
+    )
     return res
 
 

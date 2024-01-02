@@ -6,7 +6,15 @@ from googleapilib.api import slides
 from googleapilib.errors import GoogleApiErrorResponse
 from googleapilib.utilities.validators import url_validator
 
-from .schema import Presentation, Page, Table, TableCell, TextRange, TextRangeType, TextContent
+from .schema import (
+    Presentation,
+    Page,
+    Table,
+    TableCell,
+    TextRange,
+    TextRangeType,
+    TextContent,
+)
 
 
 class PageText(TypedDict):
@@ -16,7 +24,7 @@ class PageText(TypedDict):
 
 def open_presentation(presentation_id: str) -> Presentation:
     pres = slides.presentations().get(presentationId=presentation_id).execute()
-    return Presentation(**pres)  # type: ignore[misc]
+    return Presentation(**pres)  # type: ignore[typeddict-item]
 
 
 def get_page_ids(presentation) -> list[str]:
@@ -29,8 +37,13 @@ def get_page_ids(presentation) -> list[str]:
 
 
 def parse_page(presentation_id: str, page_id: str) -> Page:
-    page = slides.presentations().pages().get(presentationId=presentation_id, pageObjectId=page_id).execute()
-    return Page(**page)  # type: ignore[misc]
+    page = (
+        slides.presentations()
+        .pages()
+        .get(presentationId=presentation_id, pageObjectId=page_id)
+        .execute()
+    )
+    return Page(**page)  # type: ignore[typeddict-item]
 
 
 def get_all_page_text(page: Page) -> list[PageText]:
@@ -38,7 +51,12 @@ def get_all_page_text(page: Page) -> list[PageText]:
     for element in page["pageElements"]:
         if "shape" in element:
             if "text" in element["shape"]:
-                text_objects.append({"id": element["objectId"], "text": element["shape"]["text"]})
+                text_objects.append(
+                    {
+                        "id": element["objectId"],
+                        "text": element["shape"]["text"],
+                    }
+                )
     return text_objects
 
 
@@ -62,8 +80,18 @@ def get_text_range(
 ) -> TextRange:
     RANGE_TYPE_OPTIONS = (
         ("ALL", {"type": "ALL"}),
-        ("FROM_START_INDEX", {"type": "FROM_START_INDEX", "startIndex": start_index}),
-        ("FIXED_RANGE", {"type": "FIXED_RANGE", "startIndex": start_index, "endIndex": end_index}),
+        (
+            "FROM_START_INDEX",
+            {"type": "FROM_START_INDEX", "startIndex": start_index},
+        ),
+        (
+            "FIXED_RANGE",
+            {
+                "type": "FIXED_RANGE",
+                "startIndex": start_index,
+                "endIndex": end_index,
+            },
+        ),
     )
 
     text_range = None
@@ -71,7 +99,7 @@ def get_text_range(
         if _t == range_type:
             text_range = params
             break
-    return TextRange(**text_range)  # type: ignore[misc]
+    return TextRange(**text_range)  # type: ignore[typeddict-item]
 
 
 # responses
@@ -94,7 +122,9 @@ def batch_update(
 ) -> Union[SlidesBatchUpdateResponse, SlidesBatchUpdateError]:
     response = (
         slides.presentations()
-        .batchUpdate(presentationId=presentation_id, body={"requests": requests})
+        .batchUpdate(
+            presentationId=presentation_id, body={"requests": requests}
+        )
         .execute()
     )
 
@@ -139,24 +169,32 @@ class UpdateShapeTextStyleRequest(SlidesRequest):
     object_id: str = field(validator=[validators.instance_of(str)])
     range_type: TextRangeType = field(
         default="ALL",
-        validator=[validators.instance_of(str), validators.in_({"FIXED_RANGE", "FROM_START_INDEX", "ALL"})],
+        validator=[
+            validators.instance_of(str),
+            validators.in_({"FIXED_RANGE", "FROM_START_INDEX", "ALL"}),
+        ],
     )
     start_index: int = field(default=0, validator=[validators.instance_of(int)])
     end_index: Optional[int] = field(
-        default=None, validator=validators.optional([validators.instance_of(int)])
+        default=None,
+        validator=validators.optional([validators.instance_of(int)]),
     )
     text_range: TextRange = field(init=False)
     style: dict[str, Union[str, int, float, bool, dict[str, Any]]] = field(
         validator=validators.deep_mapping(
             key_validator=validators.instance_of(str),
-            value_validator=validators.instance_of((str, int, float, bool, dict)),
+            value_validator=validators.instance_of(
+                (str, int, float, bool, dict)
+            ),
             mapping_validator=validators.instance_of(dict),
         )
     )
     fields: str = field(default="*")
 
     def __attrs_post_init__(self):
-        self.text_range = get_text_range(self.range_type, self.start_index, self.end_index)
+        self.text_range = get_text_range(
+            self.range_type, self.start_index, self.end_index
+        )
 
 
 @define(kw_only=True)
@@ -165,7 +203,10 @@ class ReplaceShapeWithImageRequest(SlidesRequest):
     match_case: bool = field(default=True)
     replace_method: Literal["CENTER_INSIDE", "CENTER_CROP"] = field(
         default="CENTER_INSIDE",
-        validator=[validators.instance_of(str), validators.in_({"CENTER_INSIDE", "CENTER_CROP"})],
+        validator=[
+            validators.instance_of(str),
+            validators.in_({"CENTER_INSIDE", "CENTER_CROP"}),
+        ],
     )
     image_url: Optional[str] = field(default=None, validator=[url_validator])
 
@@ -178,7 +219,10 @@ class ReplaceShapeWithSheetsChartRequest(SlidesRequest):
     match_case: bool = field(default=True)
     linking_mode: Literal["LINKED", "NOT_LINKED"] = field(
         default="LINKED",
-        validator=[validators.instance_of(str), validators.in_({"LINKED", "NOT_LINKED"})],
+        validator=[
+            validators.instance_of(str),
+            validators.in_({"LINKED", "NOT_LINKED"}),
+        ],
     )
 
 
@@ -188,37 +232,56 @@ class UpdateTableCellTextRequest(SlidesRequest):
     row: int = field(validator=[validators.instance_of(int)])
     col: int = field(validator=[validators.instance_of(int)])
     new_text: str = field(validator=[validators.instance_of(str)])
-    insertion_index: int = field(default=0, validator=[validators.instance_of(int)])
+    insertion_index: int = field(
+        default=0, validator=[validators.instance_of(int)]
+    )
 
 
 @define(kw_only=True)
 class EditObjectTextStyleRequest(SlidesRequest):
     object_type: Literal["SHAPE", "TABLE"] = field(
-        validator=[validators.instance_of(str), validators.in_({"SHAPE", "TABLE"})]
+        validator=[
+            validators.instance_of(str),
+            validators.in_({"SHAPE", "TABLE"}),
+        ]
     )
     object_id: str = field(validator=[validators.instance_of(str)])
-    row: Optional[int] = field(default=None, validator=validators.optional([validators.instance_of(int)]))
-    col: Optional[int] = field(default=None, validator=validators.optional([validators.instance_of(int)]))
+    row: Optional[int] = field(
+        default=None,
+        validator=validators.optional([validators.instance_of(int)]),
+    )
+    col: Optional[int] = field(
+        default=None,
+        validator=validators.optional([validators.instance_of(int)]),
+    )
     range_type: TextRangeType = field(
         default="ALL",
-        validator=[validators.instance_of(str), validators.in_({"FIXED_RANGE", "FROM_START_INDEX", "ALL"})],
+        validator=[
+            validators.instance_of(str),
+            validators.in_({"FIXED_RANGE", "FROM_START_INDEX", "ALL"}),
+        ],
     )
     start_index: int = field(default=0, validator=[validators.instance_of(int)])
     end_index: Optional[int] = field(
-        default=None, validator=validators.optional([validators.instance_of(int)])
+        default=None,
+        validator=validators.optional([validators.instance_of(int)]),
     )
     text_range: TextRange = field(init=False)
     style_obj: dict[str, Union[str, int, float, bool, dict[str, Any]]] = field(
         validator=validators.deep_mapping(
             key_validator=validators.instance_of(str),
-            value_validator=validators.instance_of((str, int, float, bool, dict)),
+            value_validator=validators.instance_of(
+                (str, int, float, bool, dict)
+            ),
             mapping_validator=validators.instance_of(dict),
         )
     )
     fields: str = field(default="*")
 
     def __attrs_post_init__(self):
-        self.text_range = get_text_range(self.range_type, self.start_index, self.end_index)
+        self.text_range = get_text_range(
+            self.range_type, self.start_index, self.end_index
+        )
 
 
 def replace_all_text(request: ReplaceTextRequest):
@@ -232,7 +295,10 @@ def replace_all_text(request: ReplaceTextRequest):
     return {
         "replaceAllText": {
             "pageObjectIds": page_object_ids,
-            "containsText": {"matchCase": request.match_case, "text": request.old_text},
+            "containsText": {
+                "matchCase": request.match_case,
+                "text": request.old_text,
+            },
             "replaceText": request.new_text,
         }
     }
@@ -266,7 +332,10 @@ def replace_shape_with_image(
     return {
         "replaceAllShapesWithImage": {
             "pageObjectIds": page_object_ids,
-            "containsText": {"matchCase": request.match_case, "text": request.old_text},
+            "containsText": {
+                "matchCase": request.match_case,
+                "text": request.old_text,
+            },
             "imageUrl": request.image_url,
             "imageReplaceMethod": request.replace_method,
         }
@@ -279,7 +348,10 @@ def replace_shape_with_chart(request: ReplaceShapeWithSheetsChartRequest):
             "spreadsheetId": request.spreadsheet_id,
             "chartId": request.chart_id,
             "pageObjectIds": request.page_ids,
-            "containsText": {"text": request.old_text, "matchCase": request.match_case},
+            "containsText": {
+                "text": request.old_text,
+                "matchCase": request.match_case,
+            },
             "linkingMode": request.linking_mode,
         }
     }
@@ -289,7 +361,10 @@ def insert_text_into_table_cell(request: UpdateTableCellTextRequest):
     return {
         "insertText": {
             "objectId": request.table_id,
-            "cellLocation": {"rowIndex": request.row, "columnIndex": request.col},
+            "cellLocation": {
+                "rowIndex": request.row,
+                "columnIndex": request.col,
+            },
             "text": request.new_text,
             "insertionIndex": request.insertion_index,
         }
@@ -301,12 +376,17 @@ def edit_object_text_style(request: EditObjectTextStyleRequest):
         "updateTextStyle": {
             "objectId": request.object_id,
             "style": request.style_obj,
-            "textRange": get_text_range(request.range_type, request.start_index, request.end_index),
+            "textRange": get_text_range(
+                request.range_type, request.start_index, request.end_index
+            ),
             "fields": request.fields,
         }
     }
     if request.object_type == "TABLE":
-        r["updateTextStyle"]["cellLocation"] = {"rowIndex": request.row, "columnIndex": request.col}
+        r["updateTextStyle"]["cellLocation"] = {
+            "rowIndex": request.row,
+            "columnIndex": request.col,
+        }
     return r
 
 
@@ -328,7 +408,9 @@ def delete_text_from_table_cell(
     return request
 
 
-def insert_table_row(table_id: str, row: int, col: int, insert_below=True, number=1):
+def insert_table_row(
+    table_id: str, row: int, col: int, insert_below=True, number=1
+):
     request = {
         "insertTableRows": {
             "tableObjectId": table_id,
@@ -350,11 +432,16 @@ def delete_table_row(table_id: str, row: int, col: int):
     return request
 
 
-def get_object_id_of_matching_text(text_objs: list[PageText], match_text: str) -> Optional[str]:
+def get_object_id_of_matching_text(
+    text_objs: list[PageText], match_text: str
+) -> Optional[str]:
     """Returns the object ID of the first text matching the given criteria."""
 
     for text_obj in text_objs:
         for text in text_obj["text"]["textElements"]:
-            if text.get("textRun") and text["textRun"].get("content") == match_text:
+            if (
+                text.get("textRun")
+                and text["textRun"].get("content") == match_text
+            ):
                 return text_obj["id"]
     return None
